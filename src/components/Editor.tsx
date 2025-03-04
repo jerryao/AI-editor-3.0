@@ -1,8 +1,8 @@
-import React, { useCallback, useState, useEffect } from 'react';
-import { createEditor, BaseEditor, Element as SlateElement, Descendant } from 'slate';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import { createEditor, BaseEditor, Element as SlateElement, Descendant, Range, Editor, Transforms } from 'slate';
 import { Slate, Editable, withReact, useSlate, ReactEditor } from 'slate-react';
 import { withHistory, HistoryEditor } from 'slate-history';
-import { Box, Typography, Button, IconButton, Tooltip, Select, MenuItem, Divider, CircularProgress, Snackbar, Alert } from '@mui/material';
+import { Box, Typography, Button, IconButton, Tooltip, Select, MenuItem, Divider, CircularProgress, Snackbar, Alert, Paper } from '@mui/material';
 import {
   Undo, Redo, FormatPaint, FormatClear,
   Title, FormatBold, FormatItalic, FormatUnderlined, StrikethroughS,
@@ -17,7 +17,6 @@ import {
 } from '@mui/icons-material';
 import { Document, Packer, Paragraph, TextRun, UnderlineType } from 'docx';
 import { saveAs } from 'file-saver';
-import { Editor, Transforms } from 'slate';
 
 // 定义自定义类型
 type CustomElement = {
@@ -163,6 +162,134 @@ const insertImage = (editor: any, imageData: any) => {
   };
 
   editor.insertNode(image);
+};
+
+// Add TextSelectionBubbleMenu configuration
+const textSelectionBubbleMenuConfig = {
+  enable: true,
+  items: ["ai", "Bold", "Italic", "Underline", "Strike", "code"],
+};
+
+// Add TextSelectionBubbleMenu component
+const TextSelectionBubbleMenu = () => {
+  const editor = useSlate();
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const updateBubbleMenu = () => {
+      const { selection } = editor;
+      if (!selection || !textSelectionBubbleMenuConfig.enable || !Range.isExpanded(selection)) {
+        setIsVisible(false);
+        return;
+      }
+
+      const domSelection = window.getSelection();
+      if (!domSelection || domSelection.rangeCount === 0) {
+        setIsVisible(false);
+        return;
+      }
+
+      const domRange = domSelection.getRangeAt(0);
+      const rect = domRange.getBoundingClientRect();
+      
+      setPosition({
+        top: rect.top - 40,
+        left: rect.left + rect.width / 2 - 100,
+      });
+      setIsVisible(true);
+    };
+
+    document.addEventListener('selectionchange', updateBubbleMenu);
+    return () => {
+      document.removeEventListener('selectionchange', updateBubbleMenu);
+    };
+  }, [editor]);
+
+  if (!isVisible) {
+    return null;
+  }
+
+  return (
+    <Paper
+      elevation={3}
+      sx={{
+        position: 'fixed',
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+        zIndex: 1000,
+        padding: '4px',
+        display: 'flex',
+        gap: '4px',
+        backgroundColor: '#fff',
+        borderRadius: '4px',
+      }}
+    >
+      <Tooltip title="AI助手">
+        <IconButton size="small" onClick={() => {
+          // TODO: Implement AI assistant functionality
+          console.log('AI assistant clicked');
+        }}>
+          <SmartToy fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="加粗">
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.preventDefault();
+            Editor.addMark(editor, 'bold', true);
+          }}
+        >
+          <FormatBold fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="斜体">
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.preventDefault();
+            Editor.addMark(editor, 'italic', true);
+          }}
+        >
+          <FormatItalic fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="下划线">
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.preventDefault();
+            Editor.addMark(editor, 'underline', true);
+          }}
+        >
+          <FormatUnderlined fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="删除线">
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.preventDefault();
+            Editor.addMark(editor, 'strikethrough', true);
+          }}
+        >
+          <StrikethroughS fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="代码">
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.preventDefault();
+            Editor.addMark(editor, 'code', true);
+          }}
+        >
+          <Code fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Paper>
+  );
 };
 
 const CustomEditor = () => {
@@ -401,6 +528,7 @@ const CustomEditor = () => {
             display: 'flex',
             flexWrap: 'wrap',
             gap: '8px',
+            position: 'relative',
             '& button': {
               padding: '6px 12px',
               border: '1px solid #ccc',
@@ -435,7 +563,9 @@ const CustomEditor = () => {
           <Box sx={{
             padding: '20px',
             minHeight: '500px',
+            position: 'relative',
           }}>
+            <TextSelectionBubbleMenu />
             <Editable
               renderElement={renderElement}
               renderLeaf={renderLeaf}
@@ -839,9 +969,6 @@ const FormatToolbar = () => {
         >
           <Fullscreen />
         </IconButton>
-      </Tooltip>
-      <Tooltip title="AI助手">
-        <IconButton size="small"><SmartToy /></IconButton>
       </Tooltip>
     </Box>
   );
