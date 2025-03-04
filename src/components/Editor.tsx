@@ -291,6 +291,25 @@ const CustomEditor = () => {
   const renderElement = useCallback((props: any) => {
     const { element, attributes, children } = props;
     switch (element.type) {
+      case 'image':
+        return (
+          <div {...attributes}>
+            <div contentEditable={false} style={{ textAlign: element.align }}>
+              <img
+                src={element.url}
+                alt={element.alt}
+                style={{
+                  width: '65%',
+                  maxWidth: '65%',
+                  height: 'auto',
+                  display: 'block',
+                  margin: '0 auto',
+                }}
+              />
+            </div>
+            {children}
+          </div>
+        );
       case 'heading-one':
         return (
           <h1 
@@ -837,8 +856,11 @@ const ImageElement = ({ attributes, children, element }: any) => {
           src={element.url}
           alt={element.alt}
           style={{
-            width: element.width || imageConfig.defaultSize,
-            height: element.height || 'auto',
+            width: '65%',
+            maxWidth: '65%',
+            height: 'auto',
+            display: 'block',
+            margin: '0 auto',
           }}
         />
       </div>
