@@ -30,4 +30,4 @@ An AI-driven rich text editor built with Slate.js, featuring advanced text forma
 - Slate.js
 - TypeScript
 - docx (for Word export)
-- file-saver 
+- file-saver "# AI-editor-3.0" 
