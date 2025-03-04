@@ -289,7 +289,74 @@ const CustomEditor = () => {
   }, [editor]);
 
   const renderElement = useCallback((props: any) => {
-    return <Element {...props} />;
+    const { element, attributes, children } = props;
+    switch (element.type) {
+      case 'heading-one':
+        return (
+          <h1 
+            style={{
+              fontFamily: 'SimHei',
+              fontSize: '2em',
+              marginBottom: '0.5em',
+              marginTop: '1em',
+              fontWeight: 'bold',
+              lineHeight: '1.5',
+            }} 
+            {...attributes}
+          >
+            {children}
+          </h1>
+        );
+      case 'heading-two':
+        return (
+          <h2 
+            style={{
+              fontFamily: 'SimHei',
+              fontSize: '1.5em',
+              marginBottom: '0.5em',
+              marginTop: '0.8em',
+              fontWeight: 'bold',
+              lineHeight: '1.5',
+            }} 
+            {...attributes}
+          >
+            {children}
+          </h2>
+        );
+      case 'heading-three':
+        return (
+          <h3 
+            style={{
+              fontFamily: 'SimHei',
+              fontSize: '1.17em',
+              marginBottom: '0.5em',
+              marginTop: '0.6em',
+              fontWeight: 'bold',
+              lineHeight: '1.5',
+            }} 
+            {...attributes}
+          >
+            {children}
+          </h3>
+        );
+      case 'paragraph':
+        return (
+          <p 
+            style={{
+              fontFamily: 'SimSun',
+              fontSize: '14px',
+              marginBottom: '1em',
+              lineHeight: '1.8',
+              textIndent: '2em',
+            }} 
+            {...attributes}
+          >
+            {children}
+          </p>
+        );
+      default:
+        return <DefaultElement {...props} />;
+    }
   }, []);
 
   const renderLeaf = useCallback((props: any) => {
@@ -349,40 +416,9 @@ const CustomEditor = () => {
           <Box sx={{
             padding: '20px',
             minHeight: '500px',
-            fontSize: '14px',
-            '& h1': { fontSize: '2em', marginBottom: '0.5em' },
-            '& h2': { fontSize: '1.5em', marginBottom: '0.5em' },
-            '& h3': { fontSize: '1.17em', marginBottom: '0.5em' },
-            '& p': { marginBottom: '1em' },
-            '& pre': {
-              backgroundColor: '#f5f5f5',
-              padding: '1em',
-              borderRadius: '4px',
-              overflow: 'auto',
-            },
-            '& blockquote': {
-              borderLeft: '4px solid #ccc',
-              margin: '1em 0',
-              padding: '0.5em 1em',
-              color: '#666',
-            },
-            '& ul, & ol': {
-              margin: '1em 0',
-              paddingLeft: '2em',
-            },
-            '& li': {
-              marginBottom: '0.5em',
-            },
           }}>
             <Editable
-              renderElement={(props) => {
-                switch (props.element.type) {
-                  case 'image':
-                    return <ImageElement {...props} />;
-                  default:
-                    return <DefaultElement {...props} />;
-                }
-              }}
+              renderElement={renderElement}
               renderLeaf={renderLeaf}
               placeholder="开始输入..."
             />
@@ -400,37 +436,6 @@ const CustomEditor = () => {
       </Snackbar>
     </Box>
   );
-};
-
-const Element = ({ attributes, children, element }: any) => {
-  const style: React.CSSProperties = {
-    textAlign: element.align || 'left',
-  };
-
-  switch (element.type) {
-    case 'heading-one':
-      return <h1 style={style} {...attributes}>{children}</h1>;
-    case 'heading-two':
-      return <h2 style={style} {...attributes}>{children}</h2>;
-    case 'heading-three':
-      return <h3 style={style} {...attributes}>{children}</h3>;
-    case 'code':
-      return (
-        <pre style={style} {...attributes}>
-          <code>{children}</code>
-        </pre>
-      );
-    case 'quote':
-      return <blockquote style={style} {...attributes}>{children}</blockquote>;
-    case 'bulleted-list':
-      return <ul style={style} {...attributes}>{children}</ul>;
-    case 'numbered-list':
-      return <ol style={style} {...attributes}>{children}</ol>;
-    case 'list-item':
-      return <li style={style} {...attributes}>{children}</li>;
-    default:
-      return <p style={style} {...attributes}>{children}</p>;
-  }
 };
 
 const Leaf = ({ attributes, children, leaf }: any) => {
