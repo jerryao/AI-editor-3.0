@@ -17,6 +17,10 @@ import {
 } from '@mui/icons-material';
 import { Document, Packer, Paragraph, TextRun, UnderlineType } from 'docx';
 import { saveAs } from 'file-saver';
+import { AIAssistant } from './AIAssistant';
+import { AIServiceFactory } from '../services/ai/factory';
+import { Toolbar } from './Toolbar';
+import { ContinueWritingDialog } from './ContinueWritingDialog';
 
 // 定义自定义类型
 type CustomElement = {
@@ -296,6 +300,51 @@ const CustomEditor = () => {
   const [editor] = useState(() => withHistory(withReact(createEditor())));
   const [value, setValue] = useState<CustomElement[]>(initialValue);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [selectedText, setSelectedText] = useState<string>('');
+  const [showContinueWriting, setShowContinueWriting] = useState(false);
+
+  // 初始化AI服务
+  useEffect(() => {
+    const factory = AIServiceFactory.getInstance();
+    factory.initialize({
+      openai: {
+        apiKey: process.env.REACT_APP_OPENAI_API_KEY || '',
+        baseUrl: process.env.REACT_APP_OPENAI_BASE_URL,
+      },
+      deepseek: {
+        apiKey: process.env.REACT_APP_DEEPSEEK_API_KEY || '',
+        baseUrl: process.env.REACT_APP_DEEPSEEK_BASE_URL,
+      },
+      zhipu: {
+        apiKey: process.env.REACT_APP_ZHIPU_API_KEY || '',
+        baseUrl: process.env.REACT_APP_ZHIPU_BASE_URL,
+      },
+    });
+  }, []);
+
+  // 处理文本选择
+  const handleSelect = useCallback(() => {
+    const { selection } = editor;
+    if (selection && Range.isExpanded(selection)) {
+      const [start, end] = Range.edges(selection);
+      const text = Editor.string(editor, { anchor: start, focus: end });
+      setSelectedText(text);
+    } else {
+      setSelectedText('');
+    }
+  }, [editor]);
+
+  // 处理AI响应
+  const handleAIResponse = useCallback((text: string) => {
+    const { selection } = editor;
+    if (selection && Range.isExpanded(selection)) {
+      const [start, end] = Range.edges(selection);
+      Transforms.delete(editor, { at: { anchor: start, focus: end } });
+      Transforms.insertText(editor, text, { at: start });
+    } else {
+      Transforms.insertText(editor, text);
+    }
+  }, [editor]);
 
   const handleImageUploadWithSnackbar = useCallback(async (file: File) => {
     try {
@@ -509,71 +558,107 @@ const CustomEditor = () => {
     return <Leaf {...props} />;
   }, []);
 
+  const handleAIAction = useCallback((action: string) => {
+    const { selection } = editor;
+    
+    switch (action) {
+      case 'continue': {
+        // 获取当前选中文本之前的所有内容作为上下文
+        let previousText = '';
+        let currentText = '';
+
+        if (selection) {
+          const [start] = Range.edges(selection);
+          const before = Editor.before(editor, start);
+          if (before) {
+            previousText = Editor.string(editor, {
+              anchor: Editor.start(editor, []),
+              focus: before,
+            });
+          }
+          currentText = Editor.string(editor, selection);
+        } else {
+          // 如果没有选中文本，使用光标位置之前的内容
+          const point = editor.selection?.anchor;
+          if (point) {
+            previousText = Editor.string(editor, {
+              anchor: Editor.start(editor, []),
+              focus: point,
+            });
+          }
+        }
+
+        setShowContinueWriting(true);
+        break;
+      }
+      case 'optimize':
+        // 实现优化内容功能
+        break;
+      case 'custom':
+        // 实现自定义AI功能
+        break;
+    }
+  }, [editor]);
+
+  const handleContinueWritingComplete = useCallback((generatedText: string) => {
+    const { selection } = editor;
+    
+    if (selection) {
+      // 如果有选中文本，在选中文本后插入
+      const [, end] = Range.edges(selection);
+      Transforms.insertText(editor, generatedText, { at: end });
+    } else {
+      // 如果没有选中文本，在当前光标位置插入
+      Transforms.insertText(editor, generatedText);
+    }
+  }, [editor]);
+
   return (
-    <Box sx={{ width: '100%', height: '100%' }}>
-      <Slate 
-        editor={editor} 
-        value={value}
-        onChange={handleChange}
-      >
-        <Box sx={{ 
-          border: '1px solid #ccc', 
-          borderRadius: '4px',
-          overflow: 'hidden'
-        }}>
-          <Box sx={{
-            padding: '10px',
-            borderBottom: '1px solid #ccc',
-            backgroundColor: '#f5f5f5',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            position: 'relative',
-            '& button': {
-              padding: '6px 12px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              backgroundColor: '#fff',
-              cursor: 'pointer',
-              '&:hover': {
-                backgroundColor: '#f0f0f0',
-              },
-              '&.active': {
-                backgroundColor: '#e0e0e0',
-                borderColor: '#999',
-              },
-            },
-            '& select': {
-              padding: '6px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              backgroundColor: '#fff',
-            },
-            '& input[type="color"]': {
-              width: '32px',
-              height: '32px',
-              padding: '0',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            },
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ width: '100%', height: '100%' }}>
+        <Slate 
+          editor={editor} 
+          value={value}
+          onChange={handleChange}
+        >
+          <Box sx={{ 
+            border: '1px solid #ccc', 
+            borderRadius: '4px',
+            overflow: 'hidden'
           }}>
-            <FormatToolbar />
+            <Toolbar editor={editor} onAIAction={handleAIAction} />
+            <Box sx={{
+              padding: '20px',
+              minHeight: '500px',
+              position: 'relative',
+            }}>
+              <TextSelectionBubbleMenu />
+              <Editable
+                onSelect={handleSelect}
+                renderElement={renderElement}
+                renderLeaf={renderLeaf}
+                placeholder="开始输入..."
+                spellCheck
+                autoFocus
+              />
+            </Box>
           </Box>
-          <Box sx={{
-            padding: '20px',
-            minHeight: '500px',
-            position: 'relative',
-          }}>
-            <TextSelectionBubbleMenu />
-            <Editable
-              renderElement={renderElement}
-              renderLeaf={renderLeaf}
-              placeholder="开始输入..."
-            />
-          </Box>
-        </Box>
-      </Slate>
+        </Slate>
+        <AIAssistant
+          onResponse={handleAIResponse}
+          selectedText={selectedText}
+        />
+        <ContinueWritingDialog
+          open={showContinueWriting}
+          onClose={() => setShowContinueWriting(false)}
+          onComplete={handleContinueWritingComplete}
+          previousText={editor.selection ? Editor.string(editor, {
+            anchor: Editor.start(editor, []),
+            focus: editor.selection.anchor,
+          }) : ''}
+          currentText={editor.selection ? Editor.string(editor, editor.selection) : ''}
+        />
+      </Box>
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
