@@ -2,7 +2,8 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { createEditor, BaseEditor, Element as SlateElement, Descendant, Range, Editor, Transforms } from 'slate';
 import { Slate, Editable, withReact, useSlate, ReactEditor } from 'slate-react';
 import { withHistory, HistoryEditor } from 'slate-history';
-import { Box, IconButton, Tooltip, Select, MenuItem, Divider, Snackbar, Alert, Paper } from '@mui/material';
+import { Box, IconButton, Tooltip, Select, MenuItem, Divider, Snackbar, Alert, Paper,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button } from '@mui/material';
 import {
   Undo, Redo, FormatPaint, FormatClear,
   FormatBold, FormatItalic, FormatUnderlined, StrikethroughS,
@@ -22,11 +23,15 @@ import { AIServiceFactory } from '../services/ai/factory';
 import { Toolbar } from './Toolbar';
 import { ContinueWritingDialog } from './ContinueWritingDialog';
 import { EnhancementDialog, EnhancementType } from './EnhancementDialog';
+import { LinkDialog } from './LinkDialog';
+import { CodeBlockDialog } from './CodeBlockDialog';
 
 // 定义自定义类型
 type CustomElement = {
-  type: 'paragraph' | 'heading-one' | 'heading-two' | 'heading-three' | 'code' | 'quote' | 'bulleted-list' | 'numbered-list' | 'list-item' | 'image';
+  type: 'paragraph' | 'heading-one' | 'heading-two' | 'heading-three' | 'code' | 'quote' | 'bulleted-list' | 'numbered-list' | 'list-item' | 'image' | 'link' | 'code-block';
   align?: 'left' | 'center' | 'right' | 'justify';
+  url?: string; // 用于链接
+  language?: string; // 用于代码块的语言
   children: CustomText[];
 };
 
@@ -306,6 +311,16 @@ const CustomEditor = () => {
   const [showEnhancement, setShowEnhancement] = useState(false);
   const [enhancementType, setEnhancementType] = useState<EnhancementType>('summary');
   const [formatClipboard, setFormatClipboard] = useState<Record<string, any> | null>(null);
+  
+  // 添加链接对话框状态
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
+  
+  // 添加代码块对话框状态
+  const [codeBlockDialogOpen, setCodeBlockDialogOpen] = useState(false);
+  const [codeContent, setCodeContent] = useState('');
+  const [codeLanguage, setCodeLanguage] = useState('javascript');
 
   // 初始化AI服务
   useEffect(() => {
@@ -413,6 +428,34 @@ const CustomEditor = () => {
           message: '请先选择要清除格式的文本',
           severity: 'warning'
         });
+      }
+    } else if (action === 'insertLink') {
+      // 处理链接插入
+      if (Range.isExpanded(selection)) {
+        // 如果有选中文本，使用它作为链接文本
+        const text = Editor.string(editor, selection);
+        setLinkText(text);
+        setLinkUrl('https://');
+        setLinkDialogOpen(true);
+      } else {
+        // 如果没有选中文本，打开空白的链接对话框
+        setLinkText('');
+        setLinkUrl('https://');
+        setLinkDialogOpen(true);
+      }
+    } else if (action === 'insertCodeBlock') {
+      // 处理代码块插入
+      if (Range.isExpanded(selection)) {
+        // 有选中内容，将其作为代码块内容
+        const selectedText = Editor.string(editor, selection);
+        setCodeContent(selectedText);
+        setCodeLanguage('javascript'); // 默认语言
+        setCodeBlockDialogOpen(true);
+      } else {
+        // 没有选中内容，打开空的代码块对话框
+        setCodeContent('');
+        setCodeLanguage('javascript');
+        setCodeBlockDialogOpen(true);
       }
     }
   }, [editor, formatClipboard]);
@@ -550,6 +593,36 @@ const CustomEditor = () => {
   const renderElement = useCallback((props: any) => {
     const { element, attributes, children } = props;
     switch (element.type) {
+      case 'link':
+        return (
+          <a 
+            {...attributes}
+            href={element.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#0366d6', textDecoration: 'underline' }}
+          >
+            {children}
+          </a>
+        );
+      case 'code-block':
+        return (
+          <pre
+            {...attributes}
+            style={{
+              backgroundColor: '#f6f8fa',
+              borderRadius: '4px',
+              padding: '16px',
+              fontFamily: 'Consolas, Monaco, "Andale Mono", monospace',
+              fontSize: '14px',
+              lineHeight: '1.5',
+              overflowX: 'auto',
+              margin: '8px 0',
+            }}
+          >
+            <code style={{ whiteSpace: 'pre' }}>{children}</code>
+          </pre>
+        );
       case 'image':
         return (
           <div {...attributes}>
@@ -803,6 +876,79 @@ const CustomEditor = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* 添加链接对话框 */}
+      <LinkDialog
+        open={linkDialogOpen}
+        onClose={() => setLinkDialogOpen(false)}
+        initialUrl={linkUrl}
+        initialText={linkText}
+        onInsert={(url, text) => {
+          // 插入链接
+          const { selection } = editor;
+          if (selection) {
+            if (text) {
+              // 如果有选中文本，替换它
+              if (Range.isExpanded(selection)) {
+                Transforms.delete(editor);
+              }
+              
+              // 插入包含链接的内容
+              const link: CustomElement = {
+                type: 'link',
+                url,
+                children: [{ text }],
+              };
+              Transforms.insertNodes(editor, link);
+              Transforms.move(editor); // 移动光标到链接后面
+            } else {
+              // 没有文本就直接插入URL
+              Transforms.insertText(editor, url);
+            }
+          }
+          
+          setSnackbar({
+            open: true,
+            message: '链接已插入',
+            severity: 'success'
+          });
+        }}
+      />
+
+      {/* 添加代码块对话框 */}
+      <CodeBlockDialog
+        open={codeBlockDialogOpen}
+        onClose={() => setCodeBlockDialogOpen(false)}
+        initialCode={codeContent}
+        initialLanguage={codeLanguage}
+        onInsert={(code, language) => {
+          // 插入代码块
+          const { selection } = editor;
+          if (selection) {
+            // 如果有选中文本，替换它
+            if (Range.isExpanded(selection)) {
+              Transforms.delete(editor);
+            }
+            
+            // 插入代码块
+            const codeBlock: CustomElement = {
+              type: 'code-block',
+              language,
+              children: [{ text: code }],
+            };
+            Transforms.insertNodes(editor, codeBlock);
+            
+            setSnackbar({
+              open: true,
+              message: '代码块已插入',
+              severity: 'success'
+            });
+          }
+          
+          // 关闭对话框
+          setCodeBlockDialogOpen(false);
+        }}
+      />
     </Box>
   );
 };

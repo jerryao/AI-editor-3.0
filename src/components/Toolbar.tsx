@@ -157,10 +157,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editor, onAIAction, onFormatAc
           <IconButton size="small"><StrikethroughS fontSize="small" /></IconButton>
         </Tooltip>
         <Tooltip title="链接">
-          <IconButton size="small"><Link fontSize="small" /></IconButton>
+          <IconButton size="small" onClick={() => onFormatAction?.('insertLink')}>
+            <Link fontSize="small" />
+          </IconButton>
         </Tooltip>
         <Tooltip title="代码">
-          <IconButton size="small"><Code fontSize="small" /></IconButton>
+          <IconButton size="small" onClick={() => onFormatAction?.('insertCodeBlock')}>
+            <Code fontSize="small" />
+          </IconButton>
         </Tooltip>
       </Box>
 
