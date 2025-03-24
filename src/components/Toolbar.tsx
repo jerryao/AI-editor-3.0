@@ -220,17 +220,35 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editor, onAIAction }) => {
           </ListItemIcon>
           <ListItemText>继续写作</ListItemText>
         </MenuItem>
+        <MenuItem onClick={() => handleAIAction('summary')}>
+          <ListItemIcon>
+            <SmartToy fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>文本摘要</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleAIAction('proofread')}>
+          <ListItemIcon>
+            <SmartToy fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>智能校对</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleAIAction('style')}>
+          <ListItemIcon>
+            <SmartToy fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>风格转换</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleAIAction('translate')}>
+          <ListItemIcon>
+            <SmartToy fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>文本翻译</ListItemText>
+        </MenuItem>
         <MenuItem onClick={() => handleAIAction('optimize')}>
           <ListItemIcon>
             <AutoFixHigh fontSize="small" />
           </ListItemIcon>
-          <ListItemText>优化内容</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => handleAIAction('custom')}>
-          <ListItemIcon>
-            <MoreVert fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>更多自定义...</ListItemText>
+          <ListItemText>内容优化建议</ListItemText>
         </MenuItem>
       </Menu>
     </Box>

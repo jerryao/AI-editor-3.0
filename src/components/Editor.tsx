@@ -21,6 +21,7 @@ import { AIAssistant } from './AIAssistant';
 import { AIServiceFactory } from '../services/ai/factory';
 import { Toolbar } from './Toolbar';
 import { ContinueWritingDialog } from './ContinueWritingDialog';
+import { EnhancementDialog, EnhancementType } from './EnhancementDialog';
 
 // 定义自定义类型
 type CustomElement = {
@@ -302,6 +303,8 @@ const CustomEditor = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [selectedText, setSelectedText] = useState<string>('');
   const [showContinueWriting, setShowContinueWriting] = useState(false);
+  const [showEnhancement, setShowEnhancement] = useState(false);
+  const [enhancementType, setEnhancementType] = useState<EnhancementType>('summary');
 
   // 初始化AI服务
   useEffect(() => {
@@ -560,6 +563,12 @@ const CustomEditor = () => {
 
   const handleAIAction = useCallback((action: string) => {
     const { selection } = editor;
+    let text = '';
+    
+    // 获取选中的文本
+    if (selection && !Range.isCollapsed(selection)) {
+      text = Editor.string(editor, selection);
+    }
     
     switch (action) {
       case 'continue': {
@@ -591,12 +600,32 @@ const CustomEditor = () => {
         setShowContinueWriting(true);
         break;
       }
-      case 'optimize':
-        // 实现优化内容功能
+      case 'summary':
+      case 'proofread':
+      case 'style':
+      case 'translate':
+      case 'optimize': {
+        if (!text && selection) {
+          // 如果没有选中文本但有光标，获取当前段落
+          const [node] = Editor.node(editor, selection);
+          if (SlateElement.isElement(node)) {
+            text = Editor.string(editor, selection.anchor.path.slice(0, -1));
+          }
+        }
+        
+        if (text) {
+          setSelectedText(text);
+          setEnhancementType(action as EnhancementType);
+          setShowEnhancement(true);
+        } else {
+          setSnackbar({
+            open: true,
+            message: '请先选择要处理的文本',
+            severity: 'warning',
+          });
+        }
         break;
-      case 'custom':
-        // 实现自定义AI功能
-        break;
+      }
     }
   }, [editor]);
 
@@ -608,6 +637,19 @@ const CustomEditor = () => {
       const [, end] = Range.edges(selection);
       Transforms.insertText(editor, generatedText, { at: end });
     } else {
+      // 如果没有选中文本，在当前光标位置插入
+      Transforms.insertText(editor, generatedText);
+    }
+  }, [editor]);
+
+  const handleEnhancementComplete = useCallback((generatedText: string) => {
+    const { selection } = editor;
+    
+    if (selection && !Range.isCollapsed(selection)) {
+      // 如果有选中文本，替换选中文本
+      Transforms.delete(editor);
+      Transforms.insertText(editor, generatedText, { at: selection.anchor });
+    } else if (selection) {
       // 如果没有选中文本，在当前光标位置插入
       Transforms.insertText(editor, generatedText);
     }
@@ -657,6 +699,13 @@ const CustomEditor = () => {
             focus: editor.selection.anchor,
           }) : ''}
           currentText={editor.selection ? Editor.string(editor, editor.selection) : ''}
+        />
+        <EnhancementDialog
+          open={showEnhancement}
+          onClose={() => setShowEnhancement(false)}
+          onComplete={handleEnhancementComplete}
+          text={selectedText}
+          enhancementType={enhancementType}
         />
       </Box>
       <Snackbar
