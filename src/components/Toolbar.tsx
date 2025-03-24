@@ -40,11 +40,13 @@ import {
 interface ToolbarProps {
   editor: any;
   onAIAction: (action: string) => void;
+  onFormatAction?: (action: string) => void;
 }
 
-export const Toolbar: React.FC<ToolbarProps> = ({ editor, onAIAction }) => {
+export const Toolbar: React.FC<ToolbarProps> = ({ editor, onAIAction, onFormatAction }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  const [formatPaintActive, setFormatPaintActive] = React.useState(false);
 
   const handleAIMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -57,6 +59,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editor, onAIAction }) => {
   const handleAIAction = (action: string) => {
     onAIAction(action);
     handleAIMenuClose();
+  };
+
+  const handleFormatPaint = () => {
+    if (!formatPaintActive) {
+      // 激活格式刷
+      onFormatAction?.('copyFormat');
+      setFormatPaintActive(true);
+    } else {
+      // 应用格式
+      onFormatAction?.('pasteFormat');
+      setFormatPaintActive(false);
+    }
+  };
+
+  const handleClearFormat = () => {
+    onFormatAction?.('clearFormat');
   };
 
   return (
@@ -72,16 +90,28 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editor, onAIAction }) => {
       {/* History Group */}
       <Box sx={{ display: 'flex', gap: 0.5 }}>
         <Tooltip title="撤销">
-          <IconButton size="small"><Undo fontSize="small" /></IconButton>
+          <IconButton size="small" onClick={() => editor.undo()}>
+            <Undo fontSize="small" />
+          </IconButton>
         </Tooltip>
         <Tooltip title="重做">
-          <IconButton size="small"><Redo fontSize="small" /></IconButton>
+          <IconButton size="small" onClick={() => editor.redo()}>
+            <Redo fontSize="small" />
+          </IconButton>
         </Tooltip>
-        <Tooltip title="格式刷">
-          <IconButton size="small"><FormatPaint fontSize="small" /></IconButton>
+        <Tooltip title={formatPaintActive ? "点击应用格式" : "格式刷"}>
+          <IconButton 
+            size="small" 
+            onClick={handleFormatPaint}
+            color={formatPaintActive ? "primary" : "default"}
+          >
+            <FormatPaint fontSize="small" />
+          </IconButton>
         </Tooltip>
         <Tooltip title="清除格式">
-          <IconButton size="small"><FormatClear fontSize="small" /></IconButton>
+          <IconButton size="small" onClick={handleClearFormat}>
+            <FormatClear fontSize="small" />
+          </IconButton>
         </Tooltip>
       </Box>
 

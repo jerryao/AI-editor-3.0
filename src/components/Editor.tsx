@@ -305,6 +305,7 @@ const CustomEditor = () => {
   const [showContinueWriting, setShowContinueWriting] = useState(false);
   const [showEnhancement, setShowEnhancement] = useState(false);
   const [enhancementType, setEnhancementType] = useState<EnhancementType>('summary');
+  const [formatClipboard, setFormatClipboard] = useState<Record<string, any> | null>(null);
 
   // 初始化AI服务
   useEffect(() => {
@@ -336,6 +337,85 @@ const CustomEditor = () => {
       setSelectedText('');
     }
   }, [editor]);
+
+  // 处理格式操作
+  const handleFormatAction = useCallback((action: string) => {
+    const { selection } = editor;
+    if (!selection) {
+      setSnackbar({
+        open: true,
+        message: '请先选择文本',
+        severity: 'warning'
+      });
+      return;
+    }
+
+    if (action === 'copyFormat') {
+      // 格式刷：复制当前选区的格式到剪贴板
+      const marks = Editor.marks(editor);
+      if (marks) {
+        setFormatClipboard({ ...marks });
+        setSnackbar({
+          open: true,
+          message: '格式已复制，请选择要应用的文本',
+          severity: 'success'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: '没有可复制的格式',
+          severity: 'warning'
+        });
+      }
+    } else if (action === 'pasteFormat') {
+      // 应用已复制的格式
+      if (formatClipboard) {
+        // 应用所有复制的格式标记
+        Object.entries(formatClipboard).forEach(([key, value]) => {
+          Editor.addMark(editor, key as keyof Omit<CustomText, 'text'>, value);
+        });
+        
+        setSnackbar({
+          open: true,
+          message: '格式已应用',
+          severity: 'success'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: '没有可应用的格式，请先复制格式',
+          severity: 'warning'
+        });
+      }
+    } else if (action === 'clearFormat') {
+      // 清除选区内所有格式
+      if (Range.isExpanded(selection)) {
+        // 获取所有可能的格式标记
+        const allMarks = [
+          'bold', 'italic', 'underline', 'strikethrough',
+          'fontSize', 'fontFamily', 'color', 'backgroundColor',
+          'lineHeight'
+        ];
+        
+        // 移除所有格式标记
+        allMarks.forEach(mark => {
+          Editor.removeMark(editor, mark as keyof Omit<CustomText, 'text'>);
+        });
+        
+        setSnackbar({
+          open: true,
+          message: '格式已清除',
+          severity: 'success'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: '请先选择要清除格式的文本',
+          severity: 'warning'
+        });
+      }
+    }
+  }, [editor, formatClipboard]);
 
   // 处理AI响应
   const handleAIResponse = useCallback((text: string) => {
@@ -674,7 +754,7 @@ const CustomEditor = () => {
             borderRadius: '4px',
             overflow: 'hidden'
           }}>
-            <Toolbar editor={editor} onAIAction={handleAIAction} />
+            <Toolbar editor={editor} onAIAction={handleAIAction} onFormatAction={handleFormatAction} />
             <Box sx={{
               padding: '20px',
               minHeight: '500px',
@@ -745,6 +825,7 @@ const Leaf = ({ attributes, children, leaf }: any) => {
   return <span style={style} {...attributes}>{children}</span>;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const FormatToolbar = () => {
   const editor = useSlate();
   
@@ -802,10 +883,12 @@ const FormatToolbar = () => {
     Editor.addMark(editor, 'fontFamily', font);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const setColor = (color: string) => {
     Editor.addMark(editor, 'color', color);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const setBackgroundColor = (color: string) => {
     Editor.addMark(editor, 'backgroundColor', color);
   };
@@ -1114,7 +1197,7 @@ const FormatToolbar = () => {
   );
 };
 
-// Add ImageElement component
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ImageElement = ({ attributes, children, element }: any) => {
   return (
     <div {...attributes}>
