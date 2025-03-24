@@ -34,6 +34,7 @@ import {
   FormatQuote,
   SmartToy,
   AutoFixHigh,
+  Print,
 } from '@mui/icons-material';
 
 interface ToolbarProps {
@@ -181,6 +182,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({ editor, onAIAction }) => {
         </Tooltip>
         <Tooltip title="引用">
           <IconButton size="small"><FormatQuote fontSize="small" /></IconButton>
+        </Tooltip>
+      </Box>
+
+      <Divider orientation="vertical" flexItem />
+
+      {/* 导出功能 */}
+      <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <Tooltip title="导出为 Word">
+          <IconButton size="small" onClick={() => editor.exportToWord?.()}>
+            <Print fontSize="small" />
+          </IconButton>
         </Tooltip>
       </Box>
 

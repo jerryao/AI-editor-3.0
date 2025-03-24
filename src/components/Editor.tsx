@@ -655,6 +655,12 @@ const CustomEditor = () => {
     }
   }, [editor]);
 
+  // 导出为 Word 功能
+  useEffect(() => {
+    // 将导出方法添加到编辑器实例
+    (editor as any).exportToWord = exportToWord;
+  }, [editor, exportToWord]);
+
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ width: '100%', height: '100%' }}>
