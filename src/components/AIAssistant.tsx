@@ -37,7 +37,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ onResponse, selectedTe
     if (availableModels.length > 0) {
       setSelectedModel(availableModels[0]);
     }
-  }, []);
+  }, [availableModels]);
 
   useEffect(() => {
     if (selectedText) {

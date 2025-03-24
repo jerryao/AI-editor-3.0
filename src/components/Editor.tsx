@@ -1,15 +1,15 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { createEditor, BaseEditor, Element as SlateElement, Descendant, Range, Editor, Transforms } from 'slate';
 import { Slate, Editable, withReact, useSlate, ReactEditor } from 'slate-react';
 import { withHistory, HistoryEditor } from 'slate-history';
-import { Box, Typography, Button, IconButton, Tooltip, Select, MenuItem, Divider, CircularProgress, Snackbar, Alert, Paper } from '@mui/material';
+import { Box, IconButton, Tooltip, Select, MenuItem, Divider, Snackbar, Alert, Paper } from '@mui/material';
 import {
   Undo, Redo, FormatPaint, FormatClear,
-  Title, FormatBold, FormatItalic, FormatUnderlined, StrikethroughS,
+  FormatBold, FormatItalic, FormatUnderlined, StrikethroughS,
   Link, Code, Subscript, Superscript, RemoveFromQueue,
   TaskAlt, EmojiEmotions, Highlight,
   FormatColorText, FormatAlignLeft, FormatAlignCenter, FormatAlignRight, FormatAlignJustify,
-  FormatLineSpacing, FormatListBulleted, FormatListNumbered,
+  FormatListBulleted, FormatListNumbered,
   FormatIndentDecrease, FormatIndentIncrease, KeyboardReturn,
   Image, VideoLibrary, AttachFile, FormatQuote,
   ViewQuilt, DataObject, TableChart, Code as CodeIcon,
@@ -573,24 +573,24 @@ const CustomEditor = () => {
     switch (action) {
       case 'continue': {
         // 获取当前选中文本之前的所有内容作为上下文
-        let previousText = '';
-        let currentText = '';
-
         if (selection) {
           const [start] = Range.edges(selection);
           const before = Editor.before(editor, start);
           if (before) {
-            previousText = Editor.string(editor, {
+            // 使用内联代码替代命名变量
+            Editor.string(editor, {
               anchor: Editor.start(editor, []),
               focus: before,
             });
           }
-          currentText = Editor.string(editor, selection);
+          // 使用内联代码替代命名变量
+          Editor.string(editor, selection);
         } else {
           // 如果没有选中文本，使用光标位置之前的内容
           const point = editor.selection?.anchor;
           if (point) {
-            previousText = Editor.string(editor, {
+            // 使用内联代码替代命名变量
+            Editor.string(editor, {
               anchor: Editor.start(editor, []),
               focus: point,
             });

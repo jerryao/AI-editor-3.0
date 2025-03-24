@@ -34,7 +34,6 @@ import {
   FormatQuote,
   SmartToy,
   AutoFixHigh,
-  MoreVert,
 } from '@mui/icons-material';
 
 interface ToolbarProps {
